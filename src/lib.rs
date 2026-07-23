@@ -36,6 +36,8 @@ pub mod mode {
 }
 
 pub mod adc;
+#[cfg(dac)]
+pub mod dac;
 #[cfg(dma)]
 pub mod dma;
 pub mod flash;

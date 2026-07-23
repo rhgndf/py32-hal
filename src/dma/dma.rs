@@ -50,6 +50,12 @@ pub struct TransferOptions {
     /// If you enable circular mode manually, you may want to build and `.await` the `Transfer` in a separate task.
     /// Since DMA in circular mode need manually stop, `.await` in current task would block the task forever.
     pub circular: bool,
+    /// Override the peripheral transfer width.
+    ///
+    /// If this is `None`, the peripheral width matches the memory word size. This is useful for
+    /// peripherals such as the DAC, whose registers require 32-bit accesses while accepting
+    /// samples stored as bytes or half-words in memory.
+    pub peripheral_word_size: Option<WordSize>,
     /// Enable half transfer interrupt
     pub half_transfer_ir: bool,
     /// Enable transfer complete interrupt
@@ -65,6 +71,7 @@ impl Default for TransferOptions {
             // fifo_threshold: None,
             priority: Priority::VeryHigh,
             circular: false,
+            peripheral_word_size: None,
             half_transfer_ir: false,
             complete_transfer_ir: true,
         }
@@ -218,7 +225,7 @@ impl AnyChannel {
                     w.set_dma_map(info.num % 4, request);
                 });
             }
-            #[cfg(py32f072)]
+            #[cfg(any(py32f071, py32f072, py32m070))]
             1 => {
                 pac::SYSCFG.cfgr4().modify(|w| {
                     w.set_dma_map(info.num % 4, request);
@@ -243,7 +250,7 @@ impl AnyChannel {
                 ch.cr().write(|w| {
                     w.set_dir(dir.into());
                     w.set_msize(data_size.into());
-                    w.set_psize(data_size.into());
+                    w.set_psize(options.peripheral_word_size.unwrap_or(data_size).into());
                     w.set_pl(options.priority.into());
                     w.set_minc(incr_mem);
                     w.set_pinc(false);
