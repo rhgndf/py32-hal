@@ -109,6 +109,7 @@ usb-device-impl = ["dep:musb", "dep:usb-device", "musb/usb-device-impl"]
 # eligible. (1CH / 1CH_CMP are excluded; all others are fine.)
 time-driver-any = ["_time-driver"]
 time-driver-tim1 = ["_time-driver"]
+time-driver-tim2 = ["_time-driver"]
 time-driver-tim3 = ["_time-driver"]
 time-driver-tim15 = ["_time-driver"]
 time-driver-systick = ["dep:portable-atomic", "_time-driver"]

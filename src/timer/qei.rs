@@ -87,7 +87,7 @@ impl<'d, T: GeneralInstance4Channel> Qei<'d, T> {
             w.set_sms(vals::Sms::ENCODER_MODE_3);
         });
 
-        r.arr().modify(|w| w.set_arr(u16::MAX));
+        inner.set_autoreload(inner.max_value());
         r.cr1().modify(|w| w.set_cen(true));
 
         Self { inner }
@@ -102,7 +102,7 @@ impl<'d, T: GeneralInstance4Channel> Qei<'d, T> {
     }
 
     /// Get count.
-    pub fn count(&self) -> u16 {
-        self.inner.regs_gp16().cnt().read().cnt()
+    pub fn count(&self) -> u32 {
+        self.inner.get_counter()
     }
 }

@@ -221,9 +221,54 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
         unsafe { crate::pac::timer::TimCore::from_ptr(T::regs()) }
     }
 
-    #[cfg(any(py32f071, py32f072))]
-    fn regs_gp32_unchecked(&self) -> crate::pac::timer::TimGp32 {
+    pub(crate) fn regs_gp32_unchecked(&self) -> crate::pac::timer::TimGp32 {
         unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
+    }
+
+    /// Get the current counter value.
+    pub fn get_counter(&self) -> u32 {
+        match T::BITS {
+            TimerBits::Bits16 => u32::from(self.regs_core().cnt().read().cnt()),
+            TimerBits::Bits32 => self.regs_gp32_unchecked().cnt().read(),
+        }
+    }
+
+    /// Set the current counter value.
+    pub fn set_counter(&self, value: u32) {
+        match T::BITS {
+            TimerBits::Bits16 => self
+                .regs_core()
+                .cnt()
+                .write(|w| w.set_cnt(unwrap!(u16::try_from(value)))),
+            TimerBits::Bits32 => self.regs_gp32_unchecked().cnt().write_value(value),
+        }
+    }
+
+    /// Get the auto-reload value.
+    pub fn get_autoreload(&self) -> u32 {
+        match T::BITS {
+            TimerBits::Bits16 => u32::from(self.regs_core().arr().read().arr()),
+            TimerBits::Bits32 => self.regs_gp32_unchecked().arr().read(),
+        }
+    }
+
+    /// Set the auto-reload value.
+    pub fn set_autoreload(&self, value: u32) {
+        match T::BITS {
+            TimerBits::Bits16 => self
+                .regs_core()
+                .arr()
+                .write(|w| w.set_arr(unwrap!(u16::try_from(value)))),
+            TimerBits::Bits32 => self.regs_gp32_unchecked().arr().write_value(value),
+        }
+    }
+
+    /// Get the maximum value supported by the timer's counter registers.
+    pub fn max_value(&self) -> u32 {
+        match T::BITS {
+            TimerBits::Bits16 => u32::from(u16::MAX),
+            TimerBits::Bits32 => u32::MAX,
+        }
     }
 
     /// Start the timer.
@@ -238,7 +283,7 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
 
     /// Reset the counter value to 0
     pub fn reset(&self) {
-        self.regs_core().cnt().write(|r| r.set_cnt(0));
+        self.set_counter(0);
     }
 
     /// Set the frequency of how many times per second the timer counts up to the max value or down to 0.
@@ -269,7 +314,6 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
                 regs.egr().write(|r| r.set_ug(true));
                 regs.cr1().modify(|r| r.set_urs(vals::Urs::ANYEVENT));
             }
-            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => {
                 let pclk_ticks_per_timer_period = (timer_f / f) as u64;
                 let psc: u16 = unwrap!(((pclk_ticks_per_timer_period - 1) / (1 << 32)).try_into());
@@ -343,7 +387,6 @@ impl<'d, T: CoreInstance> Timer<'d, T> {
 
                 timer_f / arr / (psc + 1)
             }
-            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => {
                 let regs = self.regs_gp32_unchecked();
                 let arr = regs.arr().read();
@@ -416,7 +459,6 @@ impl<'d, T: GeneralInstance1Channel> Timer<'d, T> {
     pub fn get_max_compare_value(&self) -> u32 {
         match T::BITS {
             TimerBits::Bits16 => self.regs_1ch().arr().read().arr() as u32,
-            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => self.regs_gp32_unchecked().arr().read(),
         }
     }
@@ -566,7 +608,6 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
                     .ccr(channel.index())
                     .modify(|w| w.set_ccr(value));
             }
-            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => {
                 self.regs_gp32_unchecked()
                     .ccr(channel.index())
@@ -579,7 +620,6 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
     pub fn get_compare_value(&self, channel: Channel) -> u32 {
         match T::BITS {
             TimerBits::Bits16 => self.regs_gp16().ccr(channel.index()).read().ccr() as u32,
-            #[cfg(any(py32f071, py32f072))]
             TimerBits::Bits32 => self.regs_gp32_unchecked().ccr(channel.index()).read(),
         }
     }
@@ -630,18 +670,17 @@ impl<'d, T: GeneralInstance4Channel> Timer<'d, T> {
     }
 }
 
-// #[cfg(any(py32f071, py32f072))]
-// impl<'d, T: GeneralInstance32bit4Channel> Timer<'d, T> {
-//     /// Get access to the general purpose 32bit timer registers.
-//     ///
-//     /// Note: This works even if the timer is more capable, because registers
-//     /// for the less capable timers are a subset. This allows writing a driver
-//     /// for a given set of capabilities, and having it transparently work with
-//     /// more capable timers.
-//     pub fn regs_gp32(&self) -> crate::pac::timer::TimGp32 {
-//         unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
-//     }
-// }
+impl<'d, T: GeneralInstance32bit4Channel> Timer<'d, T> {
+    /// Get access to the general purpose 32bit timer registers.
+    ///
+    /// Note: This works even if the timer is more capable, because registers
+    /// for the less capable timers are a subset. This allows writing a driver
+    /// for a given set of capabilities, and having it transparently work with
+    /// more capable timers.
+    pub fn regs_gp32(&self) -> crate::pac::timer::TimGp32 {
+        unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
+    }
+}
 
 impl<'d, T: AdvancedInstance1Channel> Timer<'d, T> {
     /// Get access to the general purpose 1 channel with one complementary 16bit timer registers.

@@ -95,7 +95,6 @@ Too many...
 - HSE test and examples
 - Other series, chips
 - SPI, RTC
-- F072 TIM2(GP32) support
 - PY32F403
 - ...
 

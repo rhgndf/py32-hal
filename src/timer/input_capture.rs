@@ -229,10 +229,16 @@ impl<T: GeneralInstance4Channel> Future for InputCaptureFuture<T> {
         T::state().cc_waker[self.channel.index()].register(cx.waker());
 
         let regs = unsafe { crate::pac::timer::TimGp16::from_ptr(T::regs()) };
-
         let dier = regs.dier().read();
         if !dier.ccie(self.channel.index()) {
-            let val = regs.ccr(self.channel.index()).read().0;
+            let val = match T::BITS {
+                super::TimerBits::Bits16 => u32::from(regs.ccr(self.channel.index()).read().ccr()),
+                super::TimerBits::Bits32 => {
+                    unsafe { crate::pac::timer::TimGp32::from_ptr(T::regs()) }
+                        .ccr(self.channel.index())
+                        .read()
+                }
+            };
             Poll::Ready(val)
         } else {
             Poll::Pending
