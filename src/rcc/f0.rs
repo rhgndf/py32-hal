@@ -61,6 +61,17 @@ pub struct Pll {
     /// PLL multiplication factor.
     pub mul: PllMul,
 }
+/// Low-speed clock configuration
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub struct LsConfig {
+    /// Enable the low-speed internal oscillator (LSI, 32.768 kHz).
+    pub lsi: bool,
+    /// Enable the low-speed external oscillator (LSE, 32.768 kHz).
+    ///
+    /// LSE lives in the backup domain, so the PWR backup domain write
+    /// protection is disabled during init.
+    pub lse: bool,
+}
 
 /// Clocks configutation
 #[non_exhaustive]
@@ -77,7 +88,8 @@ pub struct Config {
     pub apb1_pre: APBPrescaler,
     /// Per-peripheral kernel clock selection muxes
     pub mux: super::mux::ClockMux,
-    // pub ls: super::LsConfig,
+    /// Low-speed oscillator configuration
+    pub ls: Option<LsConfig>,
 }
 
 impl Default for Config {
@@ -90,7 +102,7 @@ impl Default for Config {
             pll: None,
             ahb_pre: AHBPrescaler::DIV1,
             apb1_pre: APBPrescaler::DIV1,
-            // ls: Default::default(),
+            ls: None,
             mux: Default::default(),
         }
     }
@@ -266,6 +278,25 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
     };
      */
 
+    // Enable the low-speed oscillators, if requested.
+    let (lsi, lse) = match config.ls {
+        Some(ls) => {
+            if ls.lsi {
+                RCC.csr().modify(|w| w.set_lsion(true));
+                while !RCC.csr().read().lsirdy() {}
+            }
+            if ls.lse {
+                // LSE lives in the backup domain: unprotect it first.
+                crate::rcc::enable_and_reset::<crate::peripherals::PWR>();
+                crate::pac::PWR.cr1().modify(|w| w.set_dbp(true));
+                RCC.bdcr().modify(|w| w.set_lseon(true));
+                while !RCC.bdcr().read().lserdy() {}
+            }
+            (ls.lsi, ls.lse)
+        }
+        None => (false, false),
+    };
+
     config.mux.init();
 
     // set_clocks!(
@@ -287,7 +318,8 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
         pclk1_tim: Some(pclk1_tim).into(),
         sys: Some(sys).into(),
         hsi: hsi_value.into(),
-        lse: None.into(),
+        lsi: lsi.then_some(Hertz(32_768)).into(),
+        lse: lse.then_some(Hertz(32_768)).into(),
         pll: pll.into(),
     };
     crate::rcc::set_freqs(clocks);

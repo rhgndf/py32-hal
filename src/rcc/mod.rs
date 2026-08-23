@@ -31,6 +31,7 @@ pub struct Clocks {
     pub sys: crate::time::MaybeHertz,
 
     pub hsi: crate::time::MaybeHertz,
+    pub lsi: crate::time::MaybeHertz,
     pub lse: crate::time::MaybeHertz,
     #[cfg(not(rcc_f002b))]
     pub pll: crate::time::MaybeHertz,

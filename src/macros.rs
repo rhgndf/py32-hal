@@ -109,3 +109,9 @@ macro_rules! new_pin {
         Some($name.into())
     }};
 }
+/// No-op until DAC support exists: the generated code emits DAC pin impls
+/// from metapac pin metadata, but there is no DAC driver yet.
+#[allow(unused_macros)]
+macro_rules! impl_dac_pin {
+    ($inst:ident, $pin:ident, $ch:expr) => {};
+}
