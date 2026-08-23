@@ -42,6 +42,8 @@ pub mod flash;
 pub mod gpio;
 pub mod i2c;
 pub mod rcc;
+#[cfg(rtc)]
+pub mod rtc;
 pub mod timer;
 pub mod uid;
 pub mod usart;
