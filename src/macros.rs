@@ -4,6 +4,11 @@
 // https://github.com/embassy-rs/embassy/tree/main/embassy-stm32
 // Special thanks to the Embassy Project and its contributors for their work!
 
+#[allow(unused)]
+macro_rules! impl_dac_pin {
+    ($($tt:tt)*) => {};
+}
+
 macro_rules! peri_trait {
     (
         $(irqs: [$($irq:ident),*],)?
