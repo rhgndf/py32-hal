@@ -41,6 +41,8 @@ pub mod dma;
 pub mod flash;
 pub mod gpio;
 pub mod i2c;
+#[cfg(opa)]
+pub mod opa;
 pub mod rcc;
 pub mod timer;
 pub mod uid;

@@ -1239,6 +1239,30 @@ fn main() {
                     }
                 }
 
+                // OPA is special: fixed analog pins, one block holding three op-amps.
+                if regs.kind == "opa" {
+                    let role = pin.signal.trim_end_matches(|c: char| c.is_ascii_digit());
+                    let idx: u8 = pin.signal[role.len()..]
+                        .parse()
+                        .expect("OPA signal must end in the op-amp number");
+                    let tr = format_ident!(
+                        "{}",
+                        match role {
+                            "VP" => "VpPin",
+                            "VN" => "VnPin",
+                            "VOUT" => "VoutPin",
+                            _ => panic!("unknown OPA signal {}", pin.signal),
+                        }
+                    );
+                    let ch = format_ident!("Ch{}", idx);
+                    let peri = format_ident!("{}", p.name);
+                    let pin_name = format_ident!("{}", pin.pin);
+
+                    g.extend(quote! {
+                        impl_opa_pin!( #peri, #pin_name, #tr, #ch);
+                    })
+                }
+
                 // DAC is special
                 if regs.kind == "dac" {
                     let peri = format_ident!("{}", p.name);
