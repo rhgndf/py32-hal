@@ -9,6 +9,10 @@ mod mco;
 use critical_section::CriticalSection;
 #[cfg(mco)]
 pub use mco::*;
+#[cfg(ctc)]
+mod ctc;
+#[cfg(ctc)]
+pub use ctc::*;
 
 use crate::pac::RCC;
 // pub use crate::_generated::{mux, Clocks};

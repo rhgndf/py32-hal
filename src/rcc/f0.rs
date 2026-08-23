@@ -63,7 +63,6 @@ pub struct Pll {
 }
 
 /// Clocks configutation
-#[non_exhaustive]
 #[derive(Clone, Copy)]
 pub struct Config {
     pub hsi: Option<HsiFs>,
@@ -77,6 +76,9 @@ pub struct Config {
     pub apb1_pre: APBPrescaler,
     /// Per-peripheral kernel clock selection muxes
     pub mux: super::mux::ClockMux,
+    /// CTC PLL48M trimmer configuration
+    #[cfg(ctc)]
+    pub ctc: Option<super::CtcConfig>,
     // pub ls: super::LsConfig,
 }
 
@@ -90,8 +92,10 @@ impl Default for Config {
             pll: None,
             ahb_pre: AHBPrescaler::DIV1,
             apb1_pre: APBPrescaler::DIV1,
-            // ls: Default::default(),
             mux: Default::default(),
+            #[cfg(ctc)]
+            ctc: None,
+            // ls: Default::default(),
         }
     }
 }
@@ -267,6 +271,10 @@ pub(crate) unsafe fn init(config: Config) { unsafe {
      */
 
     config.mux.init();
+
+    // Must be configured after the clocks are up, otherwise it won't work.
+    #[cfg(ctc)]
+    let _ctc = config.ctc.map(super::init_ctc);
 
     // set_clocks!(
     //     hsi: hsi,

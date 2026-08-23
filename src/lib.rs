@@ -63,7 +63,6 @@ pub use embassy::time_driver;
 use cortex_m::peripheral::SYST;
 
 /// `py32-hal` global configuration.
-#[non_exhaustive]
 #[derive(Clone, Copy)]
 pub struct Config {
     /// RCC config.
