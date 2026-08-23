@@ -62,7 +62,12 @@ pub struct Temperature;
 impl AdcChannel<ADC1> for Temperature {}
 impl super::SealedAdcChannel<ADC1> for Temperature {
     fn channel(&self) -> u8 {
-        16
+        // PY32F07X-E RM V0.2 section 16.3.5 and the ADC_CR1.AWDCH[4:0] enum
+        // table: 10111 = TS_VIN, 10000 = OPA3_VIN. The PY32F040-E RM agrees
+        // (temperature sensor on ADC_IN23, channel 16 unused there). Note the
+        // Puya SDK header contradicts this with TEMPSENSOR = 16, which
+        // collides with the OPA3 output.
+        23
     }
 }
 
